@@ -1,3 +1,4 @@
+{-# LANGUAGE PackageImports #-}
 module Lamarckian.Types where
 
 import Obelisk.Route.Frontend
@@ -5,7 +6,7 @@ import Reflex.Dom.Core
 import Control.Monad.Trans.Reader
 import qualified Data.Map as Map
 import qualified Data.Text as T
-import Language.Haskell.TH
+import "template-haskell" Language.Haskell.TH
 
 type GroupKey = String
 

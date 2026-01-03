@@ -1,3 +1,5 @@
+{-# LANGUAGE PackageImports #-}
+
 module Lamarckian.Render where
 
 import Lamarckian.Types
@@ -5,7 +7,7 @@ import Lamarckian.Template as Template
 
 import Obelisk.Route.Frontend
 import Reflex.Dom.Core
-import Language.Haskell.TH
+import "template-haskell" Language.Haskell.TH
 import qualified Data.Map as Map
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T

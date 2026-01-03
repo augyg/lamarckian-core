@@ -66,7 +66,7 @@ hashString :: String -> String
 hashString input =
   let bsInput = BSC.pack input
       digest  = hash bsInput --With SHA256 bsInput
-  in "h-" <> show (digest) -- :: BS.ByteString)
+  in "h-" <> BSC.unpack (digest) -- :: BS.ByteString)
 
 -- | Standardized templating 
 mkTmplValue :: T.Text -> (SlotKey, HtmlString)

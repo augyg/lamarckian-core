@@ -13,6 +13,7 @@ import Crypto.Hash.SHA256 (hash)
 import qualified Data.Map as Map
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
+import qualified Data.ByteString.Base16 as B16
 import qualified Data.ByteString.Char8 as BSC
 
 renderStaticTemplate :: Map.Map Name' String -> StaticDom () -> IO String
@@ -66,7 +67,10 @@ hashString :: String -> String
 hashString input =
   let bsInput = BSC.pack input
       digest  = hash bsInput --With SHA256 bsInput
-  in "h-" <> BSC.unpack (digest) -- :: BS.ByteString)
+  in "h-" <> (BSC.unpack $ B16.encode digest)
+  -- We need this to only return letters and numbers for `streamEdit`
+  -- and use of `validName` parser
+
 
 -- | Standardized templating 
 mkTmplValue :: T.Text -> (SlotKey, HtmlString)

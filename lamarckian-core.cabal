@@ -37,6 +37,7 @@ library
       Lamarckian.JS
       Lamarckian.Render
       Lamarckian.Template
+      Lamarckian.MdBlock
       Lamarckian.Types
 
     -- other-modules:

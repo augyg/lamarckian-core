@@ -1,3 +1,11 @@
+-- | Utilities for generating JS function call strings and
+-- implementing static-dynamic DOM (pre-rendering multiple DOM states
+-- as HTML strings, then generating JS calls to swap between them).
+--
+-- The @js2@-@js9@ family builds JS call expressions using Haskell's
+-- 'Show' instances and the @IStr@ quasi-quoter for interpolation.
+-- Arguments are formatted via 'Show', so 'String' values get
+-- Haskell-style double-quoted escaping.
 module Lamarckian.JS where
 
 import Lamarckian.Render
@@ -12,7 +20,7 @@ import qualified Data.Text.Encoding as T
 import Text.IStr
 import Data.Some (Some(..))
 
--- A simple indexed GADT
+-- A simple indexed GADT (example code demonstrating Data.Some usage)
 data Value' a where
   VInt    :: Int    -> Value' Int
   VBool   :: Bool   -> Value' Bool
@@ -42,6 +50,7 @@ step (Some v) = case v of
 -- main :: IO ()
 -- main = mapM_ (putStrLn . step) store
 
+-- | Opaque JS source string. 'Semigroup'/'Monoid' via string concatenation.
 newtype Script = Script String deriving (Semigroup, Monoid)
 
 
@@ -54,10 +63,12 @@ data SyntaxJS a where
   -- WithAPI :: ?
 
 
-newtype JSFunc = JSFunc String deriving Show 
+-- | A single JS function call expression string, e.g. @\"setChild(\\\"myDiv\\\",\\\"<div>...</div>\\\")\"@.
+newtype JSFunc = JSFunc String deriving Show
 
 
--- TODO: better , more valid for other common types
+-- | Build a JS function call with 2 arguments: @funcName(a, b)@.
+-- Uses 'Show' to format each argument.
 js2 :: (Show a, Show b) => Name -> a -> b -> JSFunc
 js2 func a b = JSFunc [istr| #{func}#{(a, b)} |]
 
@@ -82,27 +93,26 @@ js8 func a b c d e f g h = JSFunc [istr| #{func}#{(a, b, c, d, e, f, g, h)} |]
 js9 :: (Show a, Show b, Show c, Show d, Show e, Show f, Show g, Show h, Show i) => Name -> a -> b -> c -> d -> e -> f -> g -> h -> i -> JSFunc
 js9 func a b c d e f g h i = JSFunc [istr| #{func}#{(a, b, c, d, e, f, g, h, i)} |]
 
--- | lmao @ name 
--- | Make a set of functions which affect the same container given by DomID
--- | then you can disperse
--- <button onClick="document.body.innerHTML = '<div>New content inside a div!</div>'">Click Me</button>
--- | While this is crap rn,
--- | there is no reason we cant vary the "IO" strategy here
--- | because if we have an ID of the target to change to we can:
--- |  -> generate this and send in the JS files
--- |  -> have an associated handler for fetching HTML components 
-type DomID = String 
+type DomID = String
+
+-- | Pre-render a list of 'StaticWidget'' values to 'ByteString', then wrap each
+-- as a @setChild(domId, \"<html>...\")@ JS call.
 staticDynamicDOM :: MonadIO m => DomID -> [StaticWidget' r x a] -> m [JSFunc]
 staticDynamicDOM domId widgets = liftIO $ forM widgets $ \w -> do
   x <- runStaticWidget w
   let html = T.decodeUtf8 x 
   pure $ js2 "setChild" domId html
 
+-- | Like 'staticDynamicDOM' but uses @setChildToggle(domId, index, \"<html>...\")@,
+-- where @index@ is the 1-based position in the list.
 staticDynWithToggle :: MonadIO m => DomID -> [StaticWidget' r x a] -> m [JSFunc]
 staticDynWithToggle domId widgets = liftIO $ forM (zip [(1::Int)..] widgets) $ \(n,widget) -> do
   html <- T.decodeUtf8 <$> runStaticWidget widget
   pure $ js3 "setChildToggle" domId n html 
 
-type OnClick = JSFunc 
+type OnClick = JSFunc
+
+-- | Render a @\<button\>@ element with the given label and an @onClick@ attribute
+-- set to the provided 'JSFunc' call string.
 simpleButton :: DomBuilder t m => T.Text -> JSFunc -> m ()
 simpleButton label (JSFunc onClick) = elAttr "button" ("onClick" =: T.pack onClick) $ text label

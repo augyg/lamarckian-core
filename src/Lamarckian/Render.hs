@@ -1,5 +1,11 @@
 {-# LANGUAGE PackageImports #-}
 
+-- | Functions for running 'StaticWidget'' values to 'ByteString' HTML.
+--
+-- The core runner is 'runStaticWidget' which strips 'SetRouteT' and
+-- 'RouteToUrlT', calls @renderStatic@, and returns the raw bytes.
+-- Higher-level variants apply template substitution ('runStaticTemplateWidget',
+-- 'runStaticHTemplateWidget') or prepend a doctype ('createHtmlDoc').
 module Lamarckian.Render where
 
 import Lamarckian.Types
@@ -13,26 +19,21 @@ import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
 import qualified Data.ByteString as BS
 
--- | OH MY GOD HOW DO I USE THE TH TO CHECK THE ROUTE
--- | OR use classes and resolve based on that?
-
--- instance RenderDOM (StaticWidget MyRoute t a) where 
--- instance RenderDOM (StaticWidget MyRoute2 t a) where 
-  -- Could subroutes derive from each other?
-
--- instance RenderDOM (_ MyRoute) => RenderDOM (StaticWidget (MyRoute :> MySubRoute) t a) where ...
-
--- Helper func since we need the source to be ByteString
-
+-- | Render a 'StaticWidget'' to 'ByteString' and prepend @\<!DOCTYPE html\>@.
 createHtmlDoc :: StaticWidget' t r () -> IO BS.ByteString
 createHtmlDoc dom = do
   html <- runStaticWidget dom
   pure $ "<!DOCTYPE html>" <> html
 
+-- | Like 'unTemplate' but takes a map of 'HtmlString' values,
+-- unwrapping them to plain 'String' before substitution.
 unTemplateHTMLString :: Map.Map String HtmlString -> String -> String
 unTemplateHTMLString tmplMap input = Template.unTemplate (T.unpack . getHtml <$> tmplMap) input
 
--- | TODO use ReaderT to ensure use of templateSlot matches existing key 
+-- | Render a widget at compile time (Template Haskell splice) with
+-- template substitution applied. The resulting 'ByteString' is baked into the binary.
+--
+-- TODO use ReaderT to ensure use of templateSlot matches existing key
 renderStaticTemplate' :: TemplateVars -> StaticWidget' r x () -> Q BS.ByteString
 renderStaticTemplate' mappy dom = do
   container <- runIO $ runStaticWidget dom
@@ -42,11 +43,17 @@ renderStaticTemplate' mappy dom = do
     $ T.unpack . T.decodeUtf8 
     $ container
 
-runStaticWidget :: StaticWidget' r x a -> IO BS.ByteString 
+-- | Run a 'StaticWidget'' to 'ByteString' by stripping 'SetRouteT' and
+-- 'RouteToUrlT' layers, then calling @renderStatic@.
+--
+-- Note: @renderRoute@ is @const \"\"@, so any @routeToUrl@ calls inside the
+-- widget will produce empty strings.
+runStaticWidget :: StaticWidget' r x a -> IO BS.ByteString
 runStaticWidget = fmap snd . renderStatic . flip runRouteToUrlT renderRoute . runSetRouteT
   where
     renderRoute = const "" -- doesnt seem to do anything anyways
 
+-- | Like 'runStaticWidget' but applies 'unTemplate' substitution afterwards.
 runStaticTemplateWidget :: TemplateVars -> StaticWidget' r x () -> IO BS.ByteString
 runStaticTemplateWidget mappy dom = do
   container <- runStaticWidget dom
@@ -56,6 +63,13 @@ runStaticTemplateWidget mappy dom = do
     $ T.unpack . T.decodeUtf8 
     $ container
 
+-- | Two-phase rendering for heterogeneous templates:
+-- strips 'HTemplateVars' down to 'HTemplateRefs' (keys + annotations only),
+-- passes those refs to the DOM builder, renders, then substitutes all slot
+-- values by their hash-derived keys.
+--
+-- Note: this function unconditionally prints debug output to stdout
+-- via @putStrLn@ and @print@.
 runStaticHTemplateWidget
   :: HTemplateVars k a
   -> (HTemplateRefs k a -> StaticWidget' r x ())

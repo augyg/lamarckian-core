@@ -30,6 +30,9 @@ extra-doc-files:    CHANGELOG.md
 
 common warnings
     ghc-options: -Wall -Werror -O -fno-show-valid-hole-fits
+    if impl(ghc >= 9.4)
+      build-depends: henforcer
+      ghc-options: -fplugin Henforcer
 
 library
     import:           warnings
@@ -62,6 +65,7 @@ library
                     , IStr
                     , parsec
                     , scrappy-core
+                    , scrappy-template
                     -- , snap
                     -- , snap-core
                     , some
@@ -117,3 +121,21 @@ library
       ScopedTypeVariables
       TemplateHaskell
       TypeFamilies
+
+test-suite lamarckian-core-tests
+    import:           warnings
+    type:             exitcode-stdio-1.0
+    main-is:          Main.hs
+    other-modules:
+      TemplateTest
+      MdBlockTest
+      JSTest
+    hs-source-dirs:   test
+    default-language: Haskell2010
+    default-extensions:
+      OverloadedStrings
+    build-depends:    base
+                    , lamarckian-core
+                    , hspec
+                    , text
+                    , containers

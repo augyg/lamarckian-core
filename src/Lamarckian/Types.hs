@@ -19,7 +19,7 @@ import qualified Data.Text as T
 import "template-haskell" Language.Haskell.TH
 
 -- | Key for grouping template values (e.g. section identifiers).
-type GroupKey = String
+type GroupKey = T.Text
 
 -- | Concrete monad stack for running static DOM rendering.
 -- Uses 'StaticDomBuilderT' which serializes to 'ByteString', not a live DOM.
@@ -45,11 +45,11 @@ type StaticWidget' r x a = SetRouteT (SpiderTimeline Global) (R r) (RouteToUrlT 
 
 -- | Slot name to replacement string. Used with 'Lamarckian.Template.unTemplate'
 -- to fill @{{::=name}}@ placeholders in rendered HTML.
-type TemplateVars = Map.Map String String
+type TemplateVars = Map.Map T.Text T.Text
 
 -- | Content-hash-derived key for a template slot. Typically produced by
 -- 'Lamarckian.Template.hashString' which outputs @\"h-\" <> hex(sha256(input))@.
-type SlotKey = String
+type SlotKey = T.Text
 
 -- | Heterogeneous template vars: keyed groups of @(SlotKey, HtmlString, extra)@.
 --

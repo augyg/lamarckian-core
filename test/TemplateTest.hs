@@ -31,12 +31,12 @@ spec = describe "Lamarckian.Template" $ do
       unTemplate m "no slots here" `shouldBe` "no slots here"
 
     it "errors on a missing key" $ do
-      let m = Map.empty :: Map.Map String String
+      let m = Map.empty :: Map.Map T.Text T.Text
       evaluate (unTemplate m "{{::=missing}}") `shouldThrow` anyErrorCall
 
   describe "hashString" $ do
     it "starts with h-" $ do
-      take 2 (hashString "anything") `shouldBe` "h-"
+      T.take 2 (hashString "anything") `shouldBe` "h-"
 
     it "is deterministic" $ do
       hashString "test" `shouldBe` hashString "test"
@@ -47,7 +47,7 @@ spec = describe "Lamarckian.Template" $ do
   describe "mkTmplValue" $ do
     it "creates a SlotKey starting with h-" $ do
       let (key, _) = mkTmplValue "hello"
-      take 2 key `shouldBe` "h-"
+      T.take 2 key `shouldBe` "h-"
 
     it "preserves the input text in HtmlString" $ do
       let (_, HtmlString val) = mkTmplValue "hello"
@@ -61,7 +61,7 @@ spec = describe "Lamarckian.Template" $ do
   describe "mkTmplValues" $ do
     it "prefixes each SlotKey with the GroupKey" $ do
       let results = mkTmplValues "grp" ["a", "b"]
-      all (\(k, _) -> take 3 k == "grp") results `shouldBe` True
+      all (\(k, _) -> T.take 3 k == "grp") results `shouldBe` True
 
     it "preserves the number of entries" $ do
       let results = mkTmplValues "g" ["x", "y", "z"]

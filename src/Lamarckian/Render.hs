@@ -26,9 +26,9 @@ createHtmlDoc dom = do
   pure $ "<!DOCTYPE html>" <> html
 
 -- | Like 'unTemplate' but takes a map of 'HtmlString' values,
--- unwrapping them to plain 'String' before substitution.
-unTemplateHTMLString :: Map.Map String HtmlString -> String -> String
-unTemplateHTMLString tmplMap input = Template.unTemplate (T.unpack . getHtml <$> tmplMap) input
+-- unwrapping them to plain 'Text' before substitution.
+unTemplateHTMLString :: Map.Map T.Text HtmlString -> T.Text -> T.Text
+unTemplateHTMLString tmplMap input = Template.unTemplate (getHtml <$> tmplMap) input
 
 -- | Render a widget at compile time (Template Haskell splice) with
 -- template substitution applied. The resulting 'ByteString' is baked into the binary.
@@ -38,9 +38,9 @@ renderStaticTemplate' :: TemplateVars -> StaticWidget' r x () -> Q BS.ByteString
 renderStaticTemplate' mappy dom = do
   container <- runIO $ runStaticWidget dom
   pure
-    $ T.encodeUtf8 . T.pack 
+    $ T.encodeUtf8
     $ unTemplate mappy
-    $ T.unpack . T.decodeUtf8 
+    $ T.decodeUtf8
     $ container
 
 -- | Run a 'StaticWidget'' to 'ByteString' by stripping 'SetRouteT' and
@@ -58,9 +58,9 @@ runStaticTemplateWidget :: TemplateVars -> StaticWidget' r x () -> IO BS.ByteStr
 runStaticTemplateWidget mappy dom = do
   container <- runStaticWidget dom
   pure
-    $ T.encodeUtf8 . T.pack 
+    $ T.encodeUtf8
     $ Template.unTemplate mappy
-    $ T.unpack . T.decodeUtf8 
+    $ T.decodeUtf8
     $ container
 
 -- | Two-phase rendering for heterogeneous templates:
@@ -77,9 +77,9 @@ runStaticHTemplateWidget
 runStaticHTemplateWidget mappy mkDom = do
   container <- runStaticWidget $ mkDom (justReferences mappy) --dom
   x <- pure
-    $ T.encodeUtf8 . T.pack 
+    $ T.encodeUtf8
     $ unTemplateHTMLString (getHTemplateValues mappy)
-    $ T.unpack . T.decodeUtf8 
+    $ T.decodeUtf8
     $ container
   putStrLn "runEmailHTemplateWidget"
   print x
